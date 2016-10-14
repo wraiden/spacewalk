@@ -21,15 +21,20 @@ import com.redhat.rhn.domain.role.RoleFactory;
 import com.redhat.rhn.domain.user.User;
 import com.redhat.rhn.frontend.dto.SystemCurrency;
 import com.redhat.rhn.frontend.dto.SystemOverview;
+import com.redhat.rhn.frontend.dto.VirtualSystemOverview;
 import com.redhat.rhn.frontend.html.HtmlTag;
 import com.redhat.rhn.frontend.taglibs.IconTag;
 import com.redhat.rhn.manager.system.SystemManager;
+
+import org.apache.log4j.Logger;
 
 /**
  * SystemListHelper - helper class with some list display functions
  * @version $Rev$
  */
 public class SystemListHelper {
+
+    private static final Logger LOG = Logger.getLogger(SystemListHelper.class);
 
     private SystemListHelper() {
     }
@@ -59,8 +64,27 @@ public class SystemListHelper {
         HtmlTag url = new HtmlTag("a");
         IconTag i = new IconTag();
 
+        LOG.error("ID is : " + next.getId());
+        LOG.error(" enh: " + next.getEnhancementErrata());
+        LOG.error(" bug: " + next.getBugErrata());
+        LOG.error(" sec: " + next.getSecurityErrata());
+        LOG.error(" outdated: " + next.getOutdatedPackages());
+        if (next instanceof VirtualSystemOverview) {
+            VirtualSystemOverview vso = (VirtualSystemOverview)next;
+            LOG.error(" uuid: " + vso.getUuid());
+            LOG.error(" host sysid: " + vso.getHostSystemId());
+            LOG.error(" system id: " + vso.getSystemId());
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("SYSTEM: ").append(next.getName());
+        sb.append(" id: ").append(next.getId());
+        sb.append(" server name: ").append(next.getServerName());
+        sb.append(" entitlement: ").append(next.getEntitlement());
         if (next.getEntitlement() == null ||
             next.getEntitlement().isEmpty()) {
+            sb.append(" entitlement null or empty");
+            LOG.error(sb.toString());
             i.setType("system-unknown");
             i.setTitle("systemlist.jsp.unentitled");
             if (user.hasRole(RoleFactory.ORG_ADMIN)) {
@@ -69,12 +93,15 @@ public class SystemListHelper {
             }
         }
         else if (checkinOverdue(next)) {
+            sb.append(" checkin overdue");
+            LOG.error(sb.toString());
             //status = "awol"
             i.setType("system-unknown");
             i.setTitle("systemlist.jsp.notcheckingin");
         }
-        else if (SystemManager.isKickstarting(user,
-                 new Long(next.getId().longValue()))) {
+        else if (SystemManager.isKickstarting(user, next.getId())) {
+            sb.append(" is kickstarting");
+            LOG.error(sb.toString());
             //status = "kickstarting";
             url.setAttribute("href",
                     "/rhn/systems/details/kickstart/SessionStatus.do?sid=" +
@@ -84,8 +111,9 @@ public class SystemListHelper {
         }
         else if (next.getEnhancementErrata() + next.getBugErrata() +
                      next.getSecurityErrata() > 0 &&
-                     !SystemManager.hasUnscheduledErrata(user, new Long(next.getId()
-                             .longValue()))) {
+                     !SystemManager.hasUnscheduledErrata(user, next.getId())) {
+            sb.append(" updates scheduled");
+            LOG.error(sb.toString());
             //status = "updates scheduled";
             url.setAttribute("href",
                     "/rhn/systems/details/history/Pending.do?sid=" +
@@ -93,7 +121,9 @@ public class SystemListHelper {
             i.setType("action-pending");
             i.setTitle("systemlist.jsp.updatesscheduled");
         }
-        else if (SystemManager.countActions(new Long(next.getId().longValue())) > 0) {
+        else if (SystemManager.countActions(next.getId()) > 0) {
+            sb.append(" actions scheduled");
+            LOG.error(sb.toString());
             //status = "actions scheduled";
             url.setAttribute("href",
                     "/rhn/systems/details/history/Pending.do?sid=" +
@@ -101,17 +131,22 @@ public class SystemListHelper {
             i.setType("action-pending");
             i.setTitle("systemlist.jsp.actionsscheduled");
         }
-        else if ((next.getEnhancementErrata() + next.getBugErrata() +
-                  next.getSecurityErrata()) == 0 &&
-                  next.getOutdatedPackages().intValue() == 0 &&
-                  SystemManager.countPackageActions(
-                     new Long(next.getId().longValue())) == 0) {
+        else if ((next.getEnhancementErrata() == null ||
+                  next.getEnhancementErrata() == 0) &&
+                 next.getBugErrata() == 0 &&
+                 next.getSecurityErrata() == 0 &&
+                 next.getOutdatedPackages() == 0 &&
+                 SystemManager.countPackageActions(next.getId()) == 0) {
 
+            sb.append(" up2date");
+            LOG.error(sb.toString());
             //status = "up2date";
             i.setType("system-ok");
             i.setTitle("systemlist.jsp.up2date");
         }
-        else if (next.getSecurityErrata().intValue() > 0) {
+        else if (next.getSecurityErrata() > 0) {
+            sb.append(" critical");
+            LOG.error(sb.toString());
             //status = "critical";
             url.setAttribute("href",
                     "/rhn/systems/details/ErrataList.do?sid=" +
@@ -120,7 +155,9 @@ public class SystemListHelper {
             i.setType("system-crit");
             i.setTitle("systemlist.jsp.critical");
         }
-        else if (next.getOutdatedPackages().intValue() > 0) {
+        else if (next.getOutdatedPackages() > 0) {
+            sb.append(" updates");
+            LOG.error(sb.toString());
             //status = "updates";
             url.setAttribute("href",
                     "/rhn/systems/details/packages/UpgradableList.do?sid=" +

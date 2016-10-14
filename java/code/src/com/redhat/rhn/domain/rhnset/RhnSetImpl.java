@@ -14,6 +14,8 @@
  */
 package com.redhat.rhn.domain.rhnset;
 
+import org.apache.log4j.Logger;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -25,6 +27,7 @@ import java.util.Set;
  * @version $Rev$
  */
 public class RhnSetImpl implements RhnSet {
+    private static final Logger LOG = Logger.getLogger(RhnSetImpl.class);
     private Long uid;
     private String label;
     private Set<RhnSetElement> elements;
@@ -146,6 +149,7 @@ public class RhnSetImpl implements RhnSet {
 
         for (int i = 0; i < elems.length; i++) {
             if (elems[i] != null && elems[i].length() > 0) {
+                LOG.error("elems[i] is '" + elems[i] + "'");
                 RhnSetElement elem = new RhnSetElement(getUserId(),
                                                         getLabel(), elems[i]);
                 removeElement(elem);

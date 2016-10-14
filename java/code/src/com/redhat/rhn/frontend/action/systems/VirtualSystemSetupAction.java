@@ -19,6 +19,7 @@ import com.redhat.rhn.domain.user.User;
 import com.redhat.rhn.frontend.dto.VirtualSystemOverview;
 import com.redhat.rhn.frontend.struts.RequestContext;
 import com.redhat.rhn.frontend.struts.RhnAction;
+import com.redhat.rhn.frontend.struts.RhnHelper;
 import com.redhat.rhn.frontend.taglibs.list.helper.ListRhnSetHelper;
 import com.redhat.rhn.frontend.taglibs.list.helper.Listable;
 import com.redhat.rhn.manager.rhnset.RhnSetDecl;
@@ -28,7 +29,6 @@ import org.apache.struts.action.ActionForm;
 import org.apache.struts.action.ActionForward;
 import org.apache.struts.action.ActionMapping;
 
-import java.util.Iterator;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -38,7 +38,10 @@ import javax.servlet.http.HttpServletResponse;
  * VirtualSystemsListSetupAction
  * @version $Rev$
  */
-public class VirtualSystemSetupAction extends RhnAction implements Listable {
+public class VirtualSystemSetupAction extends RhnAction
+        implements Listable<VirtualSystemOverview> {
+
+    //private static final Logger LOG = Logger.getLogger(VirtualSystemSetupAction.class);
 
     /** {@inheritDoc} */
     @Override
@@ -46,38 +49,19 @@ public class VirtualSystemSetupAction extends RhnAction implements Listable {
             ActionForm formIn,
             HttpServletRequest request,
             HttpServletResponse response) {
+
         ListRhnSetHelper helper =
-                new ListRhnSetHelper(this, request, RhnSetDecl.SYSTEM_GROUPS);
+                new ListRhnSetHelper(this, request, RhnSetDecl.SYSTEMS);
         helper.execute();
 
-        return mapping.findForward("default");
+        return mapping.findForward(RhnHelper.DEFAULT_FORWARD);
     }
 
-    /**
-     * Sets the status and entitlementLevel variables of each System Overview
-     * @param dr The list of System Overviews
-     * @param user The user viewing the System List
-     */
-    public void setStatusDisplay(DataResult dr, User user) {
-        Iterator i = dr.iterator();
-
-        while (i.hasNext()) {
-
-            VirtualSystemOverview next = (VirtualSystemOverview) i.next();
-
-            // If the system is not registered with RHN, we cannot show a status
-            if (next.getSystemId() != null) {
-                Long instanceId = next.getId();
-                next.setId(next.getSystemId());
-                SystemListHelper.setSystemStatusDisplay(user, next);
-                next.setId(instanceId);
-            }
-        }
-    }
 
     @Override
-    public List getResult(RequestContext context) {
+    public List<VirtualSystemOverview> getResult(RequestContext context) {
         User user = context.getCurrentUser();
+
         DataResult<VirtualSystemOverview> dr = SystemManager.virtualSystemsList(user, null);
 
         for (VirtualSystemOverview current : dr) {
@@ -93,6 +77,7 @@ public class VirtualSystemSetupAction extends RhnAction implements Listable {
         }
 
         VirtualSystemOverview.processList(dr);
+
         return dr;
     }
 
